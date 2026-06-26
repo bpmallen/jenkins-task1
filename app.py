@@ -1,10 +1,16 @@
-from flask import Flask
+from flask import Flask, jsonify
+from os import getenv
 
 app = Flask(__name__)
 
-@app.route("/")
+@app.route('/')
 def home():
-    return "Hello from Jenkins Task 1!"
+    hostname = getenv('HOSTNAME')
+    name = getenv('YOUR_NAME')
+    if name is None:
+        name = "friend"
+    return f"<h1>Hello {name}.</h1>\n\n<h2>I'm currently running in {hostname}.</h2>\n"
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+@app.route("/health")
+def health():
+    return jsonify(status="ok"), 200
