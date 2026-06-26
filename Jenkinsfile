@@ -33,6 +33,13 @@ pipeline {
             }
         }
 
+        stage('Manual Quality Gate') {
+            steps {
+                input message: 'Security scans completed. Continue deployment?',
+                      ok: 'Deploy'
+            }
+        }
+
         stage('Set up network') {
             steps {
                 sh 'docker network create app-network'
