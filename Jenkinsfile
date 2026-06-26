@@ -7,7 +7,21 @@ pipeline {
                 sh '''
                     docker rm -f flask-app nginx-app || true
                     docker network rm app-network || true
+                    mkdir -p reports
                 '''
+            }
+        }
+
+        stage('Trivy filesystem scan') {
+            steps {
+                sh '''
+                    trivy fs --format table --output reports/trivy-fs-report.txt .
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'reports/trivy-fs-report.txt', allowEmptyArchive: true
+                }
             }
         }
 
@@ -21,6 +35,20 @@ pipeline {
             steps {
                 sh 'docker build -t flask-app:latest -f Dockerfile.flask .'
                 sh 'docker build -t nginx-app:latest -f Dockerfile.nginx .'
+            }
+        }
+
+        stage('Trivy image scan') {
+            steps {
+                sh '''
+                    trivy image --format table --output reports/trivy-flask-image-report.txt flask-app:latest
+                    trivy image --format table --output reports/trivy-nginx-image-report.txt nginx-app:latest
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'reports/trivy-*-image-report.txt', allowEmptyArchive: true
+                }
             }
         }
 
