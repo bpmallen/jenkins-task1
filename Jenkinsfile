@@ -2,9 +2,12 @@ pipeline {
     agent any
 
     environment {
-        FLASK_IMAGE = 'flask-app'
-        NGINX_IMAGE = 'nginx-app'
-        IMAGE_TAG   = 'latest'
+           DOCKERHUB_USERNAME = 'benmdevops'
+
+            FLASK_IMAGE = "${DOCKERHUB_USERNAME}/flask-app"
+            NGINX_IMAGE = "${DOCKERHUB_USERNAME}/nginx-app"
+        
+            IMAGE_TAG = 'latest'
     }
 
     stages {
