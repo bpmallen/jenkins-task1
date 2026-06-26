@@ -33,7 +33,7 @@ pipeline {
 
         stage('Build images') {
             steps {
-                sh 'docker build -t flask-app:latest -f Dockerfile.'
+                sh 'docker build -t flask-app:latest -f Dockerfile .'
                 sh 'docker build -t nginx-app:latest -f Dockerfile.nginx .'
             }
         }
