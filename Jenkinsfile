@@ -1,7 +1,14 @@
 pipeline {
     agent any
 
+    environment {
+        FLASK_IMAGE = 'flask-app'
+        NGINX_IMAGE = 'nginx-app'
+        IMAGE_TAG   = 'latest'
+    }
+
     stages {
+
         stage('Clean up') {
             steps {
                 sh '''
@@ -15,12 +22,13 @@ pipeline {
         stage('Trivy filesystem scan') {
             steps {
                 sh '''
-                    trivy fs --format table --output reports/trivy-fs-report.txt .
+                    trivy fs --format table \
+                    --output reports/trivy-fs-report.txt .
                 '''
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'reports/trivy-fs-report.txt', allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'reports/trivy-fs-report.txt'
                 }
             }
         }
@@ -35,24 +43,38 @@ pipeline {
             steps {
                 sh '''
                     DOCKER_BUILDKIT=1 docker build \
-                        -t flask-app:latest \
+                        -t ${FLASK_IMAGE}:${IMAGE_TAG} \
                         -f Dockerfile .
                 '''
-        
-                sh 'docker build -t nginx-app:latest -f Dockerfile.nginx .'
+
+                sh '''
+                    docker build \
+                        -t ${NGINX_IMAGE}:${IMAGE_TAG} \
+                        -f Dockerfile.nginx .
+                '''
             }
         }
 
         stage('Trivy image scan') {
             steps {
                 sh '''
-                    trivy image --format table --output reports/trivy-flask-image-report.txt flask-app:latest
-                    trivy image --format table --output reports/trivy-nginx-image-report.txt nginx-app:latest
+                    trivy image \
+                    --format table \
+                    --output reports/trivy-flask-image-report.txt \
+                    ${FLASK_IMAGE}:${IMAGE_TAG}
+                '''
+
+                sh '''
+                    trivy image \
+                    --format table \
+                    --output reports/trivy-nginx-image-report.txt \
+                    ${NGINX_IMAGE}:${IMAGE_TAG}
                 '''
             }
+
             post {
                 always {
-                    archiveArtifacts artifacts: 'reports/trivy-*-image-report.txt', allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'reports/*.txt'
                 }
             }
         }
@@ -60,12 +82,18 @@ pipeline {
         stage('Run containers') {
             steps {
                 sh '''
-                    docker run -d --name flask-app --network app-network flask-app:latest
+                    docker run -d \
+                        --name flask-app \
+                        --network app-network \
+                        ${FLASK_IMAGE}:${IMAGE_TAG}
+                '''
 
-                    docker run -d --name nginx-app \
-                      --network app-network \
-                      -p 80:80 \
-                      nginx-app:latest
+                sh '''
+                    docker run -d \
+                        --name nginx-app \
+                        --network app-network \
+                        -p 80:80 \
+                        ${NGINX_IMAGE}:${IMAGE_TAG}
                 '''
             }
         }
